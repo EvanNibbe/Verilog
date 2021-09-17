@@ -86,7 +86,7 @@ module testbench();
 		 	
 		$display ("|%2d|%1d|%1d|%1d|%1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d| %1d|",i,w,x,y,z,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9);
 		if(i%4==3) //Every fourth row of the table, put in a marker for easier reading.
-		 $display ("|--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+--|");//Only one line, does not need a code block
+		 $display ("|--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|");//Only one line, does not need a code block
 
 	end//End of the for loop code block
  
