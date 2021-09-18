@@ -10,11 +10,11 @@ always @ ( w,x,y,z,r0,r1,r2,r3,r4,r5,r6,r7,r8,r9) begin      //Create a set of c
 
 //Hey guys add your formulas to this section
 
-//f0= 
-//r0= 
+//f0= yz+wx+wz+xy
+	r0= (y & z) | (w & x) | (w & z) | (x & y)
 
-//f1= 
-//r1= 
+//f1= xz+yz+wx
+	r1= (x & z) | (y & z) | (w & x)
 
 //f2= zwx + ywx + yzw +yzx                                         //Comment for the formula
 r2= z & w & x | y & w & x | y & z & w | y & z & x;                 //Bitwise operation of the formula
@@ -22,24 +22,24 @@ r2= z & w & x | y & w & x | y & z & w | y & z & x;                 //Bitwise ope
 //f3= yx + zw
 r3= y & x | z & w;
 
-//f4= 
-//r4= 
+//f4= yz
+	r4= (y & z)
 
-//f5= 
-//r5=
+//f5= w'x'+y'z'
+	r5=(!(w) & !(x)) | (!(y) & !(z))
 
-//f6= 
-//r6= 
+//f6= w'x'y + w'y'z + xy'z + wx'y'z'
+	r6= (!(w) & !(x) & y) | (!(w) & !(y) & z) | (x & !(y) & z) | (w & !(x) & !(y) & !(z))
 
-//f7= 
-//r7= 
+//f7=wxy'z' + xy'z + w'x'yz +w'xyz' + wx'yz' 
+	r7= (w & x & !(y) & !(z)) | (x & !(y) & z) | (!(w) & !(x) & (y) & z) | ((!w) & (x) & (y) & !(z)) | ((w) & !(x) & (y) & !(z))
 
-//f8= 
-//r8= 
-
-//f9= 
-//r9= 
-
+//f8= yz
+r8= y & z
+//	1	2	   3		4	5	6.   7		8
+//f9= w’x’y’z + w’x’yz’ + w’xy’z’ + w’xyz + wxy’z + wxyz’ + wx’y’z’ + wx’yz
+	r9= ((!w) & !(x) & !(y) & (z)) | ((!w) & !(x) & (y) & !(z)) | ((!w) & (x) & !(y) & !(z)) | ((!w) & (x) & (y) & (z)) | ((w) & (x) & !(y) & (z)) | ((w) & (x) & (y) & !(z)) | ((w) & !(x) & !(y) & !(z)) | ((w) & !(x) & (y) & (z))
+//		1				2			3				4			5				6			7				8
 end                                   // Finish the Always block
 
 endmodule                             //Module End
