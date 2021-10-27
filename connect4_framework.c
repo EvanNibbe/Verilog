@@ -59,8 +59,71 @@ void (*vlog_startup_routines[])() =
 //The following will be more traditional C code for getting player inputs and stating what the board looks like
 void getPlayer(int player) {
 	if (player==0) { //yellow
-		
+		vpi_printf("Yellow: O, Red: #, you are YELLOW\n");
+		vpi_printf("---------------Board--------------\n");
+		vpi_printf("| 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n");
+		for (int i=0; i<12; i+=2) {
+			for (int j=0; j<7; j++) {
+				if (1<<j & board[i]) { //yellow
+					vpi_printf(" O ");
+				} else if (1<<j & board[i+1]) { //red 
+					vpi_printf(" # ");
+					
+				} else { //blank
+					vpi_printf("   ");
+				}
+			}
+			vpi_printf("\n");
+		}
+		vpi_printf("What column will you put your token in? (skip a turn by putting in anything other than a number between 1 and 7, or by putting in the number of a full column) ");
+		int input=-20;
+		vpi_scanf("%d", &input);
+				//indicies used range from 0 to 6
+		input-=1;
+		if (input>-1 && input<7) {
+			int row=10, chosen=0; //last row of yellow
+			while (chosen==0 && row>-1) {
+				if (!(1<<input & board[row]) && !(1<<input & board[row+1])) {
+					chosen=1;
+					board[row] = board[row] | 1<<input;
+				} else { //position in column is full
+					row-=2;
+				}
+			}
+		}
 	} else { //red
+		vpi_printf("Yellow: O, Red: #, You are RED\n");
+		vpi_printf("---------------Board--------------\n");
+		vpi_printf("| 1 | 2 | 3 | 4 | 5 | 6 | 7 |\n");
+		for (int i=0; i<12; i+=2) {
+			for (int j=0; j<7; j++) {
+				if (1<<j & board[i]) { //yellow
+					vpi_printf(" O ");
+				} else if (1<<j & board[i+1]) { //red 
+					vpi_printf(" # ");
+					
+				} else { //blank
+					vpi_printf("   ");
+				}
+			}
+			vpi_printf("\n");
+		}
+		vpi_printf("What column will you put your token in? (skip a turn by putting in anything other than a number between 1 and 7, or by putting in the number of a full column) ");
+		int input=-20;
+		vpi_scanf("%d", &input);
+				//indicies used range from 0 to 6
+		input-=1;
+		if (input>-1 && input<7) {
+			int row=11, chosen=0; //last row of red
+			while (chosen==0 && row>-1) {
+				if (!(1<<input & board[row-1]) && !(1<<input & board[row])) {
+					chosen=1;
+					board[row] = board[row] | 1<<input;
+				} else { //position in column is full
+					row-=2;
+				}
+			}
+		}
 		
 	}
 }
