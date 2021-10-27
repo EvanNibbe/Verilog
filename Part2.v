@@ -41,8 +41,8 @@ module FullAdder(A,B,C,carry,sum);
 	wire c1;
 	wire s1;
 //---------------------------------------------
-	HalfAdder ha1(A ,B,c0,s0);
-	HalfAdder ha2(s0,C,c1,s1);
+//	HalfAdder ha1(A ,B,c0,s0);
+//	HalfAdder ha2(s0,C,c1,s1);
 //---------------------------------------------
 	always @(*) 
 	  begin
@@ -89,9 +89,11 @@ always @(*) begin
 		end
 	end
 	//now just replicate the bit at index 15 to cover all the rest of the bits of output
+	//$display("result prior to expansion: %b", result);
 	for (count=0; count<16; count=count+1) begin
 		result[count+16]=result[15];
 	end
+	//$display("result after expansion: %b", result);
  end //end of always block
 	assign sum=result;
 	assign carry=c4;
@@ -116,15 +118,6 @@ module multiply(inputA, inputB, res);
 			full_adder[1]=(((a & b) | (b & c) | (a & c)));
 		end
 	endfunction
-	//function automatic [31:0] addition(input [31:0]a, input [31:0]b);
-	//	begin
-	//		car=0;
-	//		for (count3=0; count3<32; count3=count3+1) begin
-	//			car=full_adder(car[1], a[count3], b[count3]);
-	//			addition[count3]=car[0];
-	//		end
-	//	end	
-	//endfunction
 	//the following will need to be bitshifted left by i after it is calculated
 	function automatic [31:0] partial_sum(input [15:0]a, input [15:0]i, input [15:0]b); 
 		begin
@@ -132,21 +125,13 @@ module multiply(inputA, inputB, res);
 				if (count<i) begin
 					partial_sum[count]=0;
 				end else if (count<i+16) begin
-					partial_sum[count]=a[i] && b[count]; //thus multiplying one bit of a by each bit of b
+					partial_sum[count]=a[i] && b[count-i]; //thus multiplying one bit of a by each bit of b
 				end else begin
 					partial_sum[count]=a[15] ^ b[15]; //two positive numbers make a positive, two negative numbers a positive, one pos one neg makes neg
 				end
 			end
 		end
 	endfunction
-	//function [31:0] mult(input [16:0]a, [16:0]b);
-	//	begin
-	//		mult=0;
-	//		for (count2=0; count2<16; count2=count2+1) begin
-	//			mult=addition(mult, partial_sum(a, count2, b)); 
-	//		end
-	//	end
-	//endfunction
 	always @(*) begin
 			mult=0;
 			for (count2=0; count2<16; count2=count2+1) begin
@@ -155,10 +140,10 @@ module multiply(inputA, inputB, res);
 				car=0;
 				for (count3=0; count3<32; count3=count3+1) begin
 					car=full_adder(car[1], mult[count3], partial[count3]);
-					#6;
+					//#6;
 					addition[count3]=car[0];
 				end
-				#6;
+				//#6;
 				mult=addition;
 			end
 		
@@ -166,12 +151,51 @@ module multiply(inputA, inputB, res);
 	assign res=mult;
 endmodule
 
+module divide(inputA, inputB, resDiv, divZero);
+	input [15:0] inputA;
+	input [15:0]inputB;
+	output [31:0]resDiv;
+	output divZero;
+	reg [31:0] res;
+	reg dZ;
+	always @(*) begin
+		if (inputB==0) begin
+			dZ=1;
+			res=-1;
+		end else begin
+			res=inputA/inputB;
+			dZ=0;
+		end
+	end
+	assign divZero=dZ;
+	assign resDiv=res;
+endmodule
+
+module modulo(inputA, inputB, resMod, divZero);
+	input [15:0] inputA;
+	input [15:0] inputB;
+	output [31:0] resMod;
+	output divZero;
+	reg [31:0] res;
+	reg dZ;
+	always @(*) begin
+		if (inputB==0) begin
+			 dZ=1;
+			res=-1;
+		end else begin
+			res=inputA%inputB;
+			dZ=0;
+		end
+	end
+	assign divZero=dZ;
+	assign resMod=res;
+endmodule
 
 
 
 module Dec4x16(binary,onehot);
-	input [3:0] binary;
-	output [15:0]onehot;
+	input [31:0] binary;
+	output [31:0]onehot;
 	
 	assign onehot[ 0]=~binary[3]&~binary[2]&~binary[1]&~binary[0];
 	assign onehot[ 1]=~binary[3]&~binary[2]&~binary[1]& binary[0];
@@ -195,11 +219,11 @@ endmodule
  
 //MUX Multiplexer 16 by 4
 module Mux16x4a(channels,select,b);
-input [15:0][3:0]channels;
+input [15:0][31:0]channels;
 input       [3:0] select;
-output      [3:0] b;
-wire  [15:0][3:0] channels;
-reg         [3:0] b;
+output      [31:0] b;
+wire  [15:0][31:0] channels;
+reg         [31:0] b;
 
 always @(*)
 begin
@@ -210,44 +234,79 @@ endmodule
  
 
 module Mux16x4b(channels, select, b);
-input [15:0][3:0] channels;
-input      [15:0] select;
-output      [3:0] b;
-//wire  [15:0][3:0] channels;
-//wire        [3:0] b;
+input [15:0][31:0] channels;
+input      [31:0] select;
+output      [31:0] b;
+//wire  [15:0][31:0] channels;
+//wire        [31:0] b;
 
 
-	assign b = ({16{select[15]}} & channels[15]) | 
-               ({16{select[14]}} & channels[14]) |
-			   ({16{select[13]}} & channels[13]) |
-			   ({16{select[12]}} & channels[12]) |
-			   ({16{select[11]}} & channels[11]) |
-			   ({16{select[10]}} & channels[10]) |
-			   ({16{select[ 9]}} & channels[ 9]) |
-			   ({16{select[ 8]}} & channels[ 8]) |
-			   ({16{select[ 7]}} & channels[ 7]) |
-			   ({16{select[ 6]}} & channels[ 6]) |
-			   ({16{select[ 5]}} & channels[ 5]) |
-			   ({16{select[ 4]}} & channels[ 4]) |
-			   ({16{select[ 3]}} & channels[ 3]) |
-			   ({16{select[ 2]}} & channels[ 2]) | 
-               ({16{select[ 1]}} & channels[ 1]) |
-               ({16{select[ 0]}} & channels[ 0]) ;
+	assign b = ({32{select[15]}} & channels[15]) | 
+               ({32{select[14]}} & channels[14]) |
+			   ({32{select[13]}} & channels[13]) |
+			   ({32{select[12]}} & channels[12]) |
+			   ({32{select[11]}} & channels[11]) |
+			   ({32{select[10]}} & channels[10]) |
+			   ({32{select[ 9]}} & channels[ 9]) |
+			   ({32{select[ 8]}} & channels[ 8]) |
+			   ({32{select[ 7]}} & channels[ 7]) |
+			   ({32{select[ 6]}} & channels[ 6]) |
+			   ({32{select[ 5]}} & channels[ 5]) |
+			   ({32{select[ 4]}} & channels[ 4]) |
+			   ({32{select[ 3]}} & channels[ 3]) |
+			   ({32{select[ 2]}} & channels[ 2]) | 
+               ({32{select[ 1]}} & channels[ 1]) |
+               ({32{select[ 0]}} & channels[ 0]) ;
+
+endmodule
+
+module Logic(inputA, inputB, op_code, resLog);
+input [15:0]inputA;
+input [15:0]inputB;
+input [3:0]op_code;
+output [31:0]resLog;
+wire [15:0]inputA;
+wire [15:0]inputB;
+wire [3:0]op_code;
+wire [31:0]resLog;
+reg [31:0]res;
+
+always @(*) begin
+	if (op_code==5) begin //AND
+		res=inputA & inputB;
+	end else if (op_code==6) begin //OR
+		res=inputA | inputB;
+	end else if (op_code==7) begin //NAND
+		res=~(inputA & inputB);
+	end else if (op_code==9) begin //NOR
+		res=~(inputA | inputB);
+	end else if (op_code==10) begin //XOR
+		res=inputA ^ inputB;
+	end else if (op_code==11) begin //XNOR
+		res=(inputA & inputB) | ~(inputA | inputB); //is true when both are false or when both are true 
+	end else begin //NOT (would be on 12, or on any other call.)
+		res=~inputA;
+	end
+
+
+end //end always
+
+assign resLog=res;
 
 endmodule
 
 
-module BreadBoard(inputA,inputB,command,result,error,display);
+module BreadBoard(inputA,inputB,op_code,R,error,display);
 input [15:0]inputA;
 input [15:0]inputB;
-input [3:0] command;
-output [31:0]result;
+input [3:0] op_code;
+output [31:0]R;
 output error;
 output [6:0] display;
 wire [15:0]inputA;
 wire [15:0]inputB;
-wire [3:0] command;
-reg [31:0]result;
+wire [3:0] op_code;
+reg [31:0]R;
 reg error;
 reg [6:0] display;
 
@@ -256,57 +315,63 @@ reg [6:0] display;
 //Full Adder
 reg mode;
 wire [31:0] sum;
+wire [31:0] resMod;
+wire [31:0] resDiv;
+wire [31:0] resLog; //AND, OR, NAND, NOR, XOR, XNOR, NOT
+wire divZero;
+wire divZero2; //a dummy variable since only one of these two needs to discover that inputB is 0
+wire [31:0] res; //multiplication
 wire carry;
 wire overflow;
 
 //Multiplexer
-wire [15:0][3:0] channels ;
-wire [15:0] onehotMux;
-wire [3:0] b;
+wire [15:0][31:0] channels ;
+wire [31:0] onehotMux;
+wire [31:0] b;
 
 //Seven Segment Display
-wire [15:0] D;
+wire [31:0] D;
+wire [31:0] replace_op_code; //need 32 bits to maintain consistency with other changes
+assign replace_op_code=op_code;
  
 
 Dec4x16 DecBeta(b,D);
-Dec4x16 DecAlpha(command,onehotMux);
+Dec4x16 DecAlpha(replace_op_code,onehotMux);
 AddSub nept(inputA,inputB,mode,sum,carry,overflow);
-//Mux16x4a uran(channels,command,b);
+multiply Mult3(inputA, inputB, res);
+divide div3(inputA, inputB, resDiv, divZero);
+modulo mod3(inputA, inputB, resMod, divZero2);
+Logic log(inputA, inputB, op_code, resLog);
+//Mux16x4a uran(channels,op_code,b);
 Mux16x4b satu(channels,onehotMux,b);
 
 
 
-assign channels[ 0]=0;//GROUND=0
-assign channels[ 1]=sum;//Addition
-assign channels[ 2]=0;//GROUND=0
-assign channels[ 3]=0;//GROUND=0
-assign channels[ 4]=0;//GROUND=0
-assign channels[ 5]=sum;//Subtraction
-assign channels[ 6]=0;//GROUND=0
-assign channels[ 7]=0;//GROUND=0
-assign channels[ 8]=0;//GROUND=0
-assign channels[ 9]=0;//GROUND=0
-assign channels[10]=0;//GROUND=0
-assign channels[11]=0;//GROUND=0
-assign channels[12]=0;//GROUND=0
+assign channels[ 0]=sum;//Addition
+assign channels[ 1]=resMod;//Modulo
+assign channels[ 2]=resDiv;//Divide
+assign channels[ 3]=0;//GROUND=0 //reset
+assign channels[ 4]=res;//Multiplication
+assign channels[ 5]=resLog;//AND
+assign channels[ 6]=resLog;//OR
+assign channels[ 7]=resLog;//NAND
+assign channels[ 8]=sum;//Subtraction
+assign channels[ 9]=resLog;//NOR
+assign channels[10]=resLog;//XOR
+assign channels[11]=resLog;//XNOR
+assign channels[12]=resLog;//NOT
 assign channels[13]=0;//GROUND=0
 assign channels[14]=0;//GROUND=0
-assign channels[15]=0;//GROUND=0
+assign channels[15]=16'b111111111111111; //preset 111111111111111
 
 always @(*)  
 begin
 //-------------------------------------------------------------
- mode=command[2];
- result=b;
+ mode=op_code[3];
+//$display("line 334 sum: %b, b: %b", sum, b);
+	R=b;
  error=overflow;
 //------------------------------------------------------------- 
- /*Segment a*/display[0]=D[0]     |D[2]|D[3]     |D[5]|D[6]|D[7]|D[8]|D[9];
- /*Segment b*/display[1]=D[0]|D[1]|D[2]|D[3]|D[4]          |D[7]|D[8]|D[9];
- /*Segment c*/display[2]=D[0]|D[1]     |D[3]|D[4]|D[5]|D[6]|D[7]|D[8]|D[9];
- /*Segment d*/display[3]=D[0]     |D[2]|D[3]     |D[5]|D[6]     |D[8]|D[9];
- /*Segment e*/display[4]=D[0]     |D[2]               |D[6]     |D[8]     ;
- /*Segment f*/display[5]=D[0]               |D[4]|D[5]|D[6]     |D[8]|D[9];
- /*Segment g*/display[6]=         |D[2]|D[3]|D[4]|D[5]|D[6]     |D[8]|D[9];
 //-------------------------------------------------------------	   
 end
 
@@ -317,82 +382,213 @@ module TestBench();
  
   reg [15:0] inputA;
   reg [15:0] inputB;
-	reg [15:0] inputA2;
-	reg [15:0] inputB2;
-  reg [3:0] command;
+  reg [3:0] op_code;
   wire [31:0] result;
 	wire [31:0]result2;
+	wire [31:0]result3;
+	wire [31:0]result4;
+	wire [31:0]R;
   wire error;
+	reg [1:0] E; //the output error
+	wire divZero;
   wire [6:0] display;
-  BreadBoard BB8(inputA,inputB,command,result,error,display);
+  BreadBoard BB8(inputA,inputB,op_code,result,error,display);
    
-	multiply Mult2(inputA2, inputB2, result2);
+	multiply Mult2(inputA, inputB, result2);
+	divide Div2(inputA, inputB, result3, divZero);
+	modulo Mod2(inputA, inputB, result4, divZero);
   reg k1,k2,k3,k4,k5;
   reg segA,segB,segC,segD,segE,segF,segG;
   reg [7:0] charA;
   
   initial begin
     assign inputA  = 4'b0110;
-	assign inputA2=4'b0110;
-	assign inputB  = 4'b0001;
-	assign inputB2=4'b0001;
-	assign command = 4'b0001;
+	assign inputB  = 4'b1001;
+	assign op_code = 4'b0001;
 	
+	E=((!(inputB || inputB)) && (op_code==1 || op_code==2))<<1 |  (op_code==0 || op_code==8); //divideZero
+	//(!(op_code || op_code) || op_code[3]) && error; //addOverflow
+	
+	$display("inputA: %d, inputB: %d, op_code: %d, R: %d, E: %b", inputA, inputB, op_code, R, E & ~(!error));
 
 	#10;
-	$display("%2d:%b,%2d:%b,ADD:%b,%b,E:%b,D:%b",inputA,inputA,inputB,inputB,command,result,error,display);
+	$display("inputA { %2d:%b }, inputB { %2d:%b }, op_code:%b,%b,E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
 	#10;
 	//multiply Mult2(inputA, inputB, result2);
 	$display("A * B = %b", result2);
+	$display("A / B = %b, divZero: %b", result3, divZero);
+	$display("A mod B = %b, divZero: %b", result4, divZero);
 	$display();
 	
  
   
-    segA=display[0];
-	segB=display[1];
-	segC=display[2];
-	segD=display[3];
-	segE=display[4];
-	segF=display[5];
-	segG=display[6];
-	
-
-	$display(".%b%b%b.",segA,segA,segA);
-	$display("%b...%b",segF,segB);
-    $display("%b...%b",segF,segB);
-	$display("%b...%b",segF,segB);
-	$display(".%b%b%b.",segG,segG,segG);
-	$display("%b...%b",segE,segC);
-    $display("%b...%b",segE,segC);
-	$display("%b...%b",segE,segC);
-	$display(".%b%b%b.",segD,segD,segD);
-	
-	$display();
-  
-   	assign command=4'b0101;
+   	assign op_code=4'b0100;
 	#10;
 		
-	segA=display[0];
-	segB=display[1];
-	segC=display[2];
-	segD=display[3];
-	segE=display[4];
-	segF=display[5];
-	segG=display[6];
 	
 
-	$display("%2d:%b,%2d:%b,SUB:%b,%b,E:%b,D:%b",inputA,inputA,inputB,inputB,command,result,error,display);
+	$display("%2d:%b,%2d:%b, op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+
+   	assign op_code=4'b1000;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   	assign op_code=4'b0000;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+
+	//AND
+   	assign op_code=4'b0101;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   	
+	//OR
+	assign op_code=4'b0110;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//NAND
+	assign op_code=4'b0111;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//NOR
+	assign op_code=4'b1001;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//XOR
+	assign op_code=4'b1010;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//XNOR
+	assign op_code=4'b1011;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+
+	//NOT
+	assign op_code=4'b1100;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+	#10;
+	assign inputA=15'b101101110100111;
+	assign inputB=15'b110110011001110;
+	#10;
+	$display("inputA: %d, inputB: %d, op_code: %d, R: %d, E: %b", inputA, inputB, op_code, R, E & ~(!error));
+
+	#10;
+	$display("inputA { %2d:%b }, inputB { %2d:%b }, op_code:%b,%b,E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+	#10;
+	//multiply Mult2(inputA, inputB, result2);
+	$display("A * B = %b", result2);
+	$display("A / B = %b, divZero: %b", result3, divZero);
+	$display("A mod B = %b, divZero: %b", result4, divZero);
 	$display();
-  	$display(".%b%b%b.",segA,segA,segA);
-	$display("%b...%b",segF,segB);
-    $display("%b...%b",segF,segB);
-	$display("%b...%b",segF,segB);
-	$display(".%b%b%b.",segG,segG,segG);
-	$display("%b...%b",segE,segC);
-    $display("%b...%b",segE,segC);
-	$display("%b...%b",segE,segC);
-	$display(".%b%b%b.",segD,segD,segD);
-	$display();
+	
+ 
+  
+   	assign op_code=4'b0100;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b, op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+
+   	assign op_code=4'b1000;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   	assign op_code=4'b0000;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+
+	//AND
+   	assign op_code=4'b0101;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   	
+	//OR
+	assign op_code=4'b0110;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//NAND
+	assign op_code=4'b0111;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//NOR
+	assign op_code=4'b1001;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//XOR
+	assign op_code=4'b1010;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+   
+	//XNOR
+	assign op_code=4'b1011;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
+
+	//NOT
+	assign op_code=4'b1100;
+	#10;
+		
+	
+
+	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
 
 	
 	#60; 
@@ -401,4 +597,4 @@ module TestBench();
  
 
  
-endmodule  
+endmodule
