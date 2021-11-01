@@ -299,19 +299,24 @@ module DFF(clk,in,out);
  input clk;
 //  initial 
 //  	forever begin
-//     		#13 
+//     		#26 
 //		clk = ~clk;
 //  	end
 
  input [n-1:0] in;
  output [n-1:0] out;
- //reg [n-1:0] out;
-	reg [n-1:0]maintain;
+ reg [n-1:0] out;
+	//output [3:0]op_code;
+	//reg [3:0]op_code;
+	//reg [n-1:0]maintain;
 	always @(posedge clk) begin
-		maintain=in;
-		$display("DFF run, input %d or %b", in, in);
+		out<=in;
+		//setting op_code to NO-OP after changes results in unresolved wires, so I will just have to change the clock in order to make sure everything runs properly
+		//op_code<=4'b1101; //set to No-op in order to avoid repeat changes.
+		//out=maintain;
+		//$display("DFF run, input %d or %b", in, in);
 	end //end always
- assign out = maintain;
+ //assign out = maintain;
 endmodule
 
 module BreadBoard(inputA,inputB,op_code,R,error,display,register);
@@ -408,17 +413,17 @@ module TestBench();
 	wire [31:0]result2;
 	wire [31:0]result3;
 	wire [31:0]result4;
-	reg [31:0]R;
+	wire [31:0]R;
   wire error;
-	reg [1:0] E; //the output error
+	wire [1:0] E; //the output error
 	wire divZero;
   wire [6:0] display;
   
-  wire [31:0] register;
+  reg [31:0] register;
 	assign inputB=register[15:0];
 	//alias inputB={{register[15], register[14], register[13], register[12], register[11], register[10], register[9], register[8], register[7], register[6], register[5], register[4], register[3], register[2], register[1], register[0]};
 	DFF DFF1(clk,R,register);
-  BreadBoard BB8(inputA,inputB,op_code,result,error,display,register);
+  BreadBoard BB8(inputA,inputB,op_code,R,error,display,register);
 	multiply Mult2(inputA, inputB, result2);
 	divide Div2(inputA, inputB, result3, divZero);
 	modulo Mod2(inputA, inputB, result4, divZero);
@@ -435,23 +440,27 @@ module TestBench();
 		clk=1;
 		#3;
 		clk=0;
+		//charA=0;
 			forever
 				begin
-					#6;
+					#7;
 					clk=~clk;
-					//if (charA<5) begin
+					#19;
+					//if (charA<120 && charA%7==3) begin
 					//	#2;
-					//	$display("inputB is: %d or %b, clock run %d times", inputB, inputB, charA);
-					//	charA=charA+1;
+					//	$display("inputB is: %d or %b; register is %d, R is %d, clock run %d times", inputB, inputB, register, R, charA);
 					//end
+					//charA=charA+1;
 					
 				end
 	end
+	assign E[1]=((!(inputB || inputB)) && (op_code==1 || op_code==2))		; //divideZero
+
+	assign E[0]= (op_code==0 || op_code==8); //determine whether addoverflow could occur.
   initial begin
     assign inputA  = 4'b0110;
 	//assign inputB  = 4'b1001;
-	R=0;
-	E=((!(inputB || inputB)) && (op_code==1 || op_code==2))<<1 |  (op_code==0 || op_code==8); //divideZero
+	
 	//(!(op_code || op_code) || op_code[3]) && error; //addOverflow
 	
 	$display("inputA\tinputA (bin)\t\tinputB\tinputB (bin)\t\tOperation\top_code\t\tOutput\tOutput (bin)\t\t\t\tError");
@@ -460,259 +469,79 @@ module TestBench();
 	//the register in a feedback loop
 	assign op_code = 4'b0011;
 	operation="RESET ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1101;
 	operation="NO-OP ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0000;
 	operation="ADD   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1000;
 	operation="SUB   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0100;
 	operation="MUL   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0010;
 	operation="DIV   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0001;
 	operation="MOD   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0101;
 	operation="AND   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0110;
 	operation="OR    ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1100;
 	operation="NOT   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1010;
 	operation="XOR   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1011;
 	operation="XNOR  ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0111;
 	operation="NAND  ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1001;
 	operation="NOR   ";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1111;
 	operation="PRESET";
-	#13;
+	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
-	#13;
-	$display("inputA { %2d:%b }, inputB { %2d:%b }, op_code:%b,%b,E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-	#13;
-	//multiply Mult2(inputA, inputB, result2);
-	$display("A * B = %b", result2);
-	$display("A / B = %b, divZero: %b", result3, divZero);
-	$display("A mod B = %b, divZero: %b", result4, divZero);
-	$display();
-	
- 
-  
-   	assign op_code=4'b0100;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b, op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-
-   	assign op_code=4'b1000;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   	assign op_code=4'b0000;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-
-	//AND
-   	assign op_code=4'b0101;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   	
-	//OR
-	assign op_code=4'b0110;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//NAND
-	assign op_code=4'b0111;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//NOR
-	assign op_code=4'b1001;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//XOR
-	assign op_code=4'b1010;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//XNOR
-	assign op_code=4'b1011;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-
-	//NOT
-	assign op_code=4'b1100;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-	#13;
-	assign inputA=15'b101101110100111;
-	//assign inputB=15'b110110011001110;
-	#13;
-	$display("inputA: %d, inputB: %d, op_code: %d, R: %d, E: %b", inputA, inputB, op_code, R, E & ~(!error));
-
-	#13;
-	$display("inputA { %2d:%b }, inputB { %2d:%b }, op_code:%b,%b,E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-	#13;
-	//multiply Mult2(inputA, inputB, result2);
-	$display("A * B = %b", result2);
-	$display("A / B = %b, divZero: %b", result3, divZero);
-	$display("A mod B = %b, divZero: %b", result4, divZero);
-	$display();
-	
- 
-  
-   	assign op_code=4'b0100;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b, op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-
-   	assign op_code=4'b1000;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   	assign op_code=4'b0000;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-
-	//AND
-   	assign op_code=4'b0101;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   	
-	//OR
-	assign op_code=4'b0110;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//NAND
-	assign op_code=4'b0111;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//NOR
-	assign op_code=4'b1001;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//XOR
-	assign op_code=4'b1010;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-   
-	//XNOR
-	assign op_code=4'b1011;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-
-	//NOT
-	assign op_code=4'b1100;
-	#13;
-		
-	
-
-	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
-
-	
 	#60; 
 	$finish;
   end  
