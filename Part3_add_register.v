@@ -319,7 +319,7 @@ module DFF(clk,in,out);
  //assign out = maintain;
 endmodule
 
-module BreadBoard(inputA,inputB,op_code,R,error,display,register);
+module BreadBoard(inputA,inputB,op_code,R,error,register);
 input [31:0] register;
 //reg [31:0] register; 
 input [15:0]inputA;
@@ -327,7 +327,6 @@ input [15:0]inputB;
 input [3:0] op_code;
 output [31:0]R;
 output error;
-output [6:0] display;
 wire [15:0]inputA;
 wire [15:0]inputB;
 wire [3:0] op_code;
@@ -417,18 +416,17 @@ module TestBench();
   wire error;
 	wire [1:0] E; //the output error
 	wire divZero;
-  wire [6:0] display;
   
   reg [31:0] register;
 	assign inputB=register[15:0];
 	//alias inputB={{register[15], register[14], register[13], register[12], register[11], register[10], register[9], register[8], register[7], register[6], register[5], register[4], register[3], register[2], register[1], register[0]};
 	DFF DFF1(clk,R,register);
-  BreadBoard BB8(inputA,inputB,op_code,R,error,display,register);
+  BreadBoard BB8(inputA,inputB,op_code,R,error,register);
 	multiply Mult2(inputA, inputB, result2);
 	divide Div2(inputA, inputB, result3, divZero);
 	modulo Mod2(inputA, inputB, result4, divZero);
   reg k1,k2,k3,k4,k5;
-  reg segA,segB,segC,segD,segE,segF,segG;
+  reg [10:0]segA;
   reg [7:0] charA;
   reg [6*8-1:0] operation;
   //CLOCK Thread
@@ -440,17 +438,17 @@ module TestBench();
 		clk=1;
 		#3;
 		clk=0;
-		//charA=0;
+		charA=0;
 			forever
 				begin
 					#7;
 					clk=~clk;
 					#19;
-					//if (charA<120 && charA%7==3) begin
-					//	#2;
-					//	$display("inputB is: %d or %b; register is %d, R is %d, clock run %d times", inputB, inputB, register, R, charA);
-					//end
-					//charA=charA+1;
+					if (charA<120 && charA%7==3) begin
+						
+						$display("clock run %d times", charA);
+					end
+					charA=charA+1;
 					
 				end
 	end
@@ -460,6 +458,7 @@ module TestBench();
   initial begin
     assign inputA  = 4'b0110;
 	//assign inputB  = 4'b1001;
+	assign segA=0;
 	
 	//(!(op_code || op_code) || op_code[3]) && error; //addOverflow
 	
@@ -468,80 +467,95 @@ module TestBench();
 	//Each line of the table is done by replicating the effect of this, though this will be edited to use the feedback from the clock on each operation to
 	//the register in a feedback loop
 	assign op_code = 4'b0011;
+	assign segA=segA+1;
 	operation="RESET ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1101;
+	assign segA=segA+1;
 	operation="NO-OP ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0000;
+	assign segA=segA+1;
 	operation="ADD   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1000;
+	assign segA=segA+1;
 	operation="SUB   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0100;
+	assign segA=segA+1;
 	operation="MUL   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0010;
+	assign segA=segA+1;
 	operation="DIV   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0001;
+	assign segA=segA+1;
 	operation="MOD   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0101;
+	assign segA=segA+1;
 	operation="AND   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0110;
+	assign segA=segA+1;
 	operation="OR    ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1100;
+	assign segA=segA+1;
 	operation="NOT   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1010;
+	assign segA=segA+1;
 	operation="XOR   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1011;
+	assign segA=segA+1;
 	operation="XNOR  ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b0111;
+	assign segA=segA+1;
 	operation="NAND  ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1001;
+	assign segA=segA+1;
 	operation="NOR   ";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
 
 	assign op_code = 4'b1111;
+	assign segA=segA+1;
 	operation="PRESET";
 	#26;
 	$display("%d \t%b \t%d \t%b \t%s \t\t%b\t%d \t%b \t%b", inputA, inputA, inputB, inputB, operation, op_code, R, R, E & ~(!error));
-
+	$display("op_code set %d times, clock run %d times", segA, charA);
 	#60; 
 	$finish;
   end  
