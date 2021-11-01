@@ -1,6 +1,6 @@
 //Evan Nibbe, Srivatsan Srirangam, Eddie C.
 //October 10, 2021
-//Part2.v
+//Part3_add_register.v
 //This code is derived from the code given by Dr. Eric Becker
 //
 //=============================================
@@ -304,11 +304,14 @@ module DFF(clk,in,out);
 //  	end
 
  input [n-1:0] in;
- output reg [n-1:0] out=0;
+ output [n-1:0] out;
  //reg [n-1:0] out;
-
- always @(posedge clk)
- assign out = in;
+	reg [n-1:0]maintain;
+	always @(posedge clk) begin
+		maintain=in;
+		$display("DFF run, input %d or %b", in, in);
+	end //end always
+ assign out = maintain;
 endmodule
 
 module BreadBoard(inputA,inputB,op_code,R,error,display,register);
@@ -399,7 +402,7 @@ endmodule
 module TestBench();
   reg clk=0;
   reg [15:0] inputA;
-  reg [15:0] inputB;
+  wire [15:0] inputB;
   reg [3:0] op_code;
   wire [31:0] result;
 	wire [31:0]result2;
@@ -412,7 +415,8 @@ module TestBench();
   wire [6:0] display;
   
   wire [31:0] register;
-	alias inputB={register[15:0]};
+	assign inputB=register[15:0];
+	//alias inputB={{register[15], register[14], register[13], register[12], register[11], register[10], register[9], register[8], register[7], register[6], register[5], register[4], register[3], register[2], register[1], register[0]};
 	DFF DFF1(clk,R,register);
   BreadBoard BB8(inputA,inputB,op_code,result,error,display,register);
 	multiply Mult2(inputA, inputB, result2);
@@ -425,15 +429,21 @@ module TestBench();
   //CLOCK Thread
   initial
 	begin
+		charA=0;
 			forever
 				begin
-				#5;
-				clk=~clk;
+					#4;
+					clk=~clk;
+					if (charA<5) begin
+						$display("inputB is: %d or %b, clock run %d times", inputB, inputB, charA);
+						charA=charA+1;
+					end
+					
 				end
 	end
   initial begin
     assign inputA  = 4'b0110;
-	assign inputB  = 4'b1001;
+	//assign inputB  = 4'b1001;
 	
 	E=((!(inputB || inputB)) && (op_code==1 || op_code==2))<<1 |  (op_code==0 || op_code==8); //divideZero
 	//(!(op_code || op_code) || op_code[3]) && error; //addOverflow
@@ -605,7 +615,7 @@ module TestBench();
 	$display("%2d:%b,%2d:%b,op_code:%b, R: %b, E:%b",inputA,inputA,inputB,inputB,op_code,result, E & ~(!error));
 	#10;
 	assign inputA=15'b101101110100111;
-	assign inputB=15'b110110011001110;
+	//assign inputB=15'b110110011001110;
 	#10;
 	$display("inputA: %d, inputB: %d, op_code: %d, R: %d, E: %b", inputA, inputB, op_code, R, E & ~(!error));
 
